@@ -24,4 +24,8 @@ public class Display {
 	public void update(){
 		renderer.render(display);
 	}
+	
+	public void loadSpriteFromMemory(int bytesCount){
+		
+	}
 }

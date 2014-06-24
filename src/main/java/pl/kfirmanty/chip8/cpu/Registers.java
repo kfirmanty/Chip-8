@@ -77,10 +77,6 @@ public class Registers {
 		return opcode;
 	}
 	
-	public void incrementProgramCounter(){
-		programCounter += PROGRAM_COUNTER_STEP;
-	}
-	
 	public void setProgramCounter(short programCounter){
 		this.programCounter = programCounter;
 	}
@@ -92,7 +88,7 @@ public class Registers {
 	public void setV(short value, short index){
 		v[index] = (short)(value & 0xFF); //TODO:Technicaly the register Vx value should be 8 bit so value overflow mechanism should be considered
 	}
-	public short getV(short index){
+	public short getV(int index){
 		return v[index];
 	}
 
@@ -121,7 +117,7 @@ public class Registers {
 	}
 	
 	public void skipNextOpcode(){
-		programCounter += 2 * PROGRAM_COUNTER_STEP;
+		programCounter += PROGRAM_COUNTER_STEP;
 	}
 	
 }
