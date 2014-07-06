@@ -4,4 +4,6 @@ public interface Renderer {
 	void clearDisplay();
 	
 	void render(boolean[][] display);
+	
+	void setFrameRate(float frameRate);
 }

@@ -23,6 +23,12 @@ public class Configuration {
 	
 	private static final int DISPLAY_CHIP_48 = 2;
 	
+	private static final String SCALE = "scale";
+	private static final int DEFAULT_SCALE = 10;
+	private static final String IS_CHIP_48 = "isChip48";
+	
+	
+	
 	private JsonObject configurationJson;
 	private int scale;
 	private boolean isChip48;
@@ -42,21 +48,21 @@ public class Configuration {
 		GsonBuilder builder = new GsonBuilder();
 		Gson gson = builder.create();
 		try{
-		BufferedReader reader = new BufferedReader(new FileReader(BASE_DIR + CONFIGURATION_FILE_NAME));
-		
-		configurationJson = gson.fromJson(reader, JsonObject.class);
-		reader.close();
-		scale = configurationJson.get("scale").getAsInt();
-		isChip48 = configurationJson.get("isChip48").getAsBoolean();
-		}catch(Exception e){
-			logger.log(Level.WARNING, "Config file not found, initializing with default values");
+			BufferedReader reader = new BufferedReader(new FileReader(BASE_DIR + CONFIGURATION_FILE_NAME));
+			
+			configurationJson = gson.fromJson(reader, JsonObject.class);
+			reader.close();
+			scale = configurationJson.get(SCALE).getAsInt();
+			isChip48 = configurationJson.get(IS_CHIP_48).getAsBoolean();
+		} catch(Exception e){
+			logger.log(Level.WARNING, "Config file not found, initializing with default values", e);
 			initDefault();
 		}
 		
 	}
 	
 	private void initDefault(){
-		scale = 1;
+		scale = DEFAULT_SCALE;
 		isChip48 = false;
 	}
 
@@ -69,11 +75,11 @@ public class Configuration {
 	}
 	
 	public int getWindowWidth(){
-		return DISPLAY_WIDTH * scale;
+		return getDisplayWidth() * scale;
 	}
 	
 	public int getWindowHeight(){
-		return DISPLAY_HEIGHT * scale;
+		return getDisplayHeight() * scale;
 	}
 	
 	public int getDisplayWidth(){

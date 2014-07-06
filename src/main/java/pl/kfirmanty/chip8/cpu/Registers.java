@@ -3,13 +3,16 @@ package pl.kfirmanty.chip8.cpu;
 import java.util.Arrays;
 import java.util.Stack;
 
+import pl.kfirmanty.chip8.exception.Chip8Exception;
+import pl.kfirmanty.chip8.helpers.FileHelper;
+
 public class Registers {
 	private static final int PROGRAM_COUNTER_STEP = 2;
 	
+	private Stack<Short> stack;
 	private short[] memory = new short[0x1000];
 	private short[] v = new short[0x10];
 	private short i = 0;
-	private short vf = 0;
 	
 	private short delayTimer = 0;
 	private short soundTimer = 0;
@@ -17,43 +20,43 @@ public class Registers {
 	private short programCounter = 0;
 	
 	public Registers(){
-		reset();
+		stack = new Stack<>();
 	}
 	
 	public void loadProgram(short[] program, short offset){
-		for(short i = offset; i < program.length; i++){
+		for(short i = 0; i < program.length; i++){
 			memory[offset + i] = program[i];
 		}
 	}
 	
-	public void reset(){
+	public void reset() throws Chip8Exception{
 		Arrays.fill(memory, (short)0);
 		Arrays.fill(v, (short)0);
 		i = 0;
-		vf = (short)0;
 		delayTimer = 0;
 		soundTimer = 0;
 		programCounter = 0;
 		initMemory();
 	}
 	
-	public void initMemory(){
-		
+	public void initMemory() throws Chip8Exception{
+		loadProgram(FileHelper.readProgramMemoryFromFile("memory.bin"), (short) 0);
 	}
 	
-	private Stack<Short> stack;
-	
-	public void addToStack(short addr){
+	public void addToStack(short addr) throws Chip8Exception{
 		if(stack.size() <= 0x10){
 			stack.add(addr);
+		}else{
+			throw new Chip8Exception("Trying to push element to full stack");
 		}
 	}
 	
-	public short popFromStack(){
-		if(stack.size() <= 0){
-			
+	public short popFromStack() throws Chip8Exception{
+		if(stack.size() > 0){
+			return stack.pop();
+		}else{
+			throw new Chip8Exception("Trying to pop from empty stack");
 		}
-		return stack.pop();
 	}
 	
 	public void updateTimers(){
@@ -97,15 +100,7 @@ public class Registers {
 	}
 
 	public void setI(short i) {
-		this.i = i;
-	}
-
-	public short getVf() {
-		return vf;
-	}
-
-	public void setVf(short vf) {
-		this.vf = vf;
+		this.i = (short)(i & 0xFFFF);
 	}
 
 	public void setDelayTimer(short delayTimer) {
@@ -118,6 +113,26 @@ public class Registers {
 	
 	public void skipNextOpcode(){
 		programCounter += PROGRAM_COUNTER_STEP;
+	}
+	
+	public short getMemoryContent(int addres){
+		return memory[addres];
+	}
+
+	public short getDelayTimer() {
+		return delayTimer;
+	}
+
+	public short getSoundTimer() {
+		return soundTimer;
+	}
+	
+	public void setIToAddresOfDigitSprite(short digit){
+		setI((short) (digit * 5));
+	}
+	
+	public void setMemoryContent(short value, short index){
+		memory[index] = (short)(value & 0xFF);
 	}
 	
 }

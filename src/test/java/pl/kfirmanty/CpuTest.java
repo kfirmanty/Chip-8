@@ -9,7 +9,7 @@ public class CpuTest extends TestCase {
 	Cpu cpu;
 	public CpuTest(String testName) {
 		super(testName);
-		cpu = new Cpu();
+		//cpu = new Cpu();
 	}
 
 	public static Test suite() {

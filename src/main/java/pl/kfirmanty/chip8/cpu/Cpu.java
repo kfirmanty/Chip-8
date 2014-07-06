@@ -1,30 +1,56 @@
 package pl.kfirmanty.chip8.cpu;
 
+import pl.kfirmanty.chip8.controller.Controller;
+import pl.kfirmanty.chip8.controller.KeyboardController;
 import pl.kfirmanty.chip8.display.Display;
+import pl.kfirmanty.chip8.exception.Chip8Exception;
+import pl.kfirmanty.chip8.helpers.ByteHelper;
+import syntesthesia.Synesthesia;
+
+import com.sun.istack.internal.logging.Logger;
 
 public class Cpu {
-	Registers registers;
-	Display display;
+	private static Logger logger = Logger.getLogger(Cpu.class);
+	private Registers registers;
+	private Display display;
+	private Synesthesia synesthesia;
+	private Controller controller;
+	private boolean idle;
+	
+	private short registerToWriteKey;
+	
 	public Cpu(){
 		registers = new Registers();
-		display = new Display();
+		display = new Display(registers);
+		synesthesia = new Synesthesia();
+		controller = new KeyboardController();
+		idle = false;
 	}
 	
-	public void update(){
+	public void setIdle(boolean idle){
+		this.idle = idle;
+	}
+	
+	public void update() throws Chip8Exception{
+		if(idle){
+			if(controller.getLastPressedKey() != null){
+				setIdle(false);
+				registers.setV(controller.getLastPressedKey(), registerToWriteKey);
+			}
+			return;
+		}
 		short opcode = registers.fetchNextOpcode();
 		decodeOpcode(opcode);
 		registers.updateTimers();
+		synesthesia.changeFrequency(ByteHelper.getNibbles(opcode));
+		synesthesia.playSound();
 	}
 	
 	//FIXME:Increase readibility
-	public void decodeOpcode(short opcode){
-		short[] opcodeNibbles = new short[4];
-		opcodeNibbles[0] = getOpcodePart(opcode, 3); 
-		opcodeNibbles[1] = getOpcodePart(opcode, 2);
-		opcodeNibbles[2] = getOpcodePart(opcode, 1);
-		opcodeNibbles[3] = getOpcodePart(opcode, 0);
-		//Formatting convetion for if/else if other than in rest of the code to increase visual separation
+	public void decodeOpcode(short opcode) throws Chip8Exception{
+		short[] opcodeNibbles = ByteHelper.getNibbles(opcode);
 		short value = 0;
+		
 		switch(opcodeNibbles[0]){
 			case 0:{ //0xxx
 				if(opcode == 0x00E0){
@@ -87,7 +113,7 @@ public class Cpu {
 						if(value > 0xFF){
 							vF = 1;
 						}
-						registers.setVf(vF);
+						registers.setV(vF, (short)0xF);
 						registers.setV(value, opcodeNibbles[1]);
 						break;
 					case 5:
@@ -96,7 +122,7 @@ public class Cpu {
 						if(vX > vY){
 							vF = 1;
 						}
-						registers.setVf(vF);
+						registers.setV(vF, (short)0xF);
 						registers.setV(value, opcodeNibbles[1]);
 						break;
 					case 6:
@@ -105,7 +131,7 @@ public class Cpu {
 						if((vX & 0x1) == 1){
 							vF = 1;
 						}
-						registers.setVf(vF);
+						registers.setV(vF, (short)0xF);
 						registers.setV(value, opcodeNibbles[1]);
 						break;
 					case 7:
@@ -114,7 +140,7 @@ public class Cpu {
 						if(vY > vX){
 							vF = 1;
 						}
-						registers.setVf(vF);
+						registers.setV(vF, (short)0xF);
 						registers.setV(value, opcodeNibbles[1]);
 						break;
 					case 0xE:
@@ -123,7 +149,7 @@ public class Cpu {
 						if((vX & 0b10000000) == 0b10000000){
 							vF = 1;
 						}
-						registers.setVf(vF);
+						registers.setV(vF, (short)0xF);
 						registers.setV(value, opcodeNibbles[1]);
 						break;
 				}
@@ -145,11 +171,61 @@ public class Cpu {
 				value = (short)(random & (opcode & 0xFF));
 				registers.setV(value, opcodeNibbles[1]);
 				break;
+			case 0xD:
+				display.loadSpriteFromMemory(registers.getV(opcodeNibbles[1]), registers.getV(opcodeNibbles[2]), opcodeNibbles[3]);
+				break;
+			case 0xE:
+				if(opcodeNibbles[2] == 0x9 && opcodeNibbles[3] == 0xE){
+					if(controller.isKeyPressed(opcodeNibbles[1])){
+						registers.skipNextOpcode();
+					}
+				} else if(opcodeNibbles[2] == 0xA && opcodeNibbles[3] == 0x1){
+					if(controller.isKeyReleased(opcodeNibbles[1])){
+						registers.skipNextOpcode();
+					}
+				}
+				break;
+			case 0xF:
+				if(opcodeNibbles[2] == 0x0 && opcodeNibbles[3] == 0x7){
+					registers.setV(registers.getDelayTimer(), opcodeNibbles[1]);
+				}else if(opcodeNibbles[2] == 0x0 && opcodeNibbles[3] == 0xA){//WAIT FOR KEY PRESS
+					setIdle(true);
+					registerToWriteKey = opcodeNibbles[1];
+				}else if(opcodeNibbles[2] == 0x1 && opcodeNibbles[3] == 0x5){
+					registers.setDelayTimer(registers.getV(opcodeNibbles[1]));
+				}else if(opcodeNibbles[2] == 0x1 && opcodeNibbles[3] == 0x8){
+					registers.setSoundTimer(registers.getV(opcodeNibbles[1]));
+				}else if(opcodeNibbles[2] == 0x1 && opcodeNibbles[3] == 0xE){
+					registers.setI((short)(registers.getI() + registers.getV(opcodeNibbles[1])));
+				}else if(opcodeNibbles[2] == 0x2 && opcodeNibbles[3] == 0x9){
+					registers.setIToAddresOfDigitSprite(opcodeNibbles[1]);
+				}else if(opcodeNibbles[2] == 0x3 && opcodeNibbles[3] == 0x3){
+					short val = opcodeNibbles[1];
+					short decim = (short) (val % 10);
+					val = (short) (val/10);
+					short tenths = (short) (val % 10);
+					val = (short) (opcodeNibbles[0]/10);
+					short hundreths = (short) (val % 10);
+					registers.setMemoryContent(hundreths, registers.getI());
+					registers.setMemoryContent(tenths, (short) (registers.getI() + 1));
+					registers.setMemoryContent(decim, (short) (registers.getI() + 2));
+				}else if(opcodeNibbles[2] == 0x5 && opcodeNibbles[3] == 0x5){
+					for(int i = 0; i < 0x10; i++){
+						short registerVal = registers.getV(i);
+						registers.setMemoryContent(registerVal, (short) (registers.getI() + i));
+					}
+				}else if(opcodeNibbles[2] == 0x6 && opcodeNibbles[3] == 0x5){
+					for(int i = 0; i < 0x10; i++){
+						short registerVal = registers.getMemoryContent(registers.getI() + i);
+						registers.setV(registerVal, (short) i);
+					}
+				}
+				break;
+			default:
+				logger.warning("Unknown opcode: " + opcode);
+				break;
+				
 		}
-	}
-	
-	public short getOpcodePart(short opcode, int index){ // Counted from right, starting from 0
-		return (short)((opcode >> 4 * index) & 0xF);	
 	}
 	
 	public Registers getRegisters(){
@@ -158,5 +234,9 @@ public class Cpu {
 	
 	public Display getDisplay(){
 		return display;
+	}
+
+	public Controller getController() {
+		return controller;
 	}
 }
