@@ -2,6 +2,8 @@ package pl.kfirmanty.chip8;
 
 import java.io.File;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import pl.kfirmanty.chip8.configuration.Configuration;
 import pl.kfirmanty.chip8.controller.Controller;
@@ -12,59 +14,63 @@ import pl.kfirmanty.chip8.exception.Chip8Exception;
 import pl.kfirmanty.chip8.helpers.FileHelper;
 import processing.core.PApplet;
 
-import com.sun.istack.internal.logging.Logger;
-
-
-
-public class Main extends PApplet{
+public class ProcessingMain extends PApplet {
 
 	private static final long serialVersionUID = -3651935202343786554L;
-	private static Logger logger = Logger.getLogger(Main.class);
+	private static Logger logger = Logger.getLogger(ProcessingMain.class.getSimpleName());
 	private Cpu cpu;
 	private Controller controller;
-	
+
 	@Override
-	public void setup(){
+	public void setup() {
 		Configuration configuration;
 		configuration = Configuration.getInstance();
 		size(configuration.getWindowWidth(), configuration.getWindowHeight());
 		selectInput("Select a file to process:", "initEmulator");
-		frameRate(2f);
+		if (configuration.isSynesthesia()) {
+			frameRate(2f);
+		}
+		// noLoop();
 	}
-	
+
 	@Override
-	public void draw(){
-		try{
-			if(cpu != null){
+	public void draw() {
+		if (Configuration.getInstance().isSynesthesia()) {
+			frameRate(2f);
+		} else {
+			frameRate(60f);
+		}
+		try {
+			if (cpu != null) {
 				cpu.update();
 				cpu.getDisplay().update();
 			}
-		} catch(Chip8Exception e){
-			logger.severe("", e);
+		} catch (Chip8Exception e) {
+			logger.log(Level.SEVERE, e.getMessage(), e);
 		}
 	}
 
-	public static void main(String[] args){
-		PApplet.main("pl.kfirmanty.chip8.Main", args);
+	public static void main(String[] args) {
+		PApplet.main("pl.kfirmanty.chip8.ProcessingMain", args);
 	}
-	
-	private void initController(){
+
+	private void initController() {
 		Map<Character, Short> scheme = controller.getKeyScheme();
 		scheme.put('1', (short) 1);
 		scheme.put('2', (short) 2);
 		scheme.put('3', (short) 3);
 		scheme.put('4', (short) 0xC);
-		
+
 		scheme.put('q', (short) 4);
 		scheme.put('w', (short) 5);
 		scheme.put('e', (short) 6);
 		scheme.put('r', (short) 0xD);
-		
+
 		scheme.put('a', (short) 7);
 		scheme.put('s', (short) 8);
 		scheme.put('d', (short) 9);
 		scheme.put('f', (short) 0xE);
-		
+
 		scheme.put('z', (short) 0xA);
 		scheme.put('x', (short) 0x0);
 		scheme.put('c', (short) 0xB);
@@ -80,8 +86,8 @@ public class Main extends PApplet{
 	public void keyReleased() {
 		controller.releaseKey(key);
 	}
-	
-	public void initEmulator(File file){
+
+	public void initEmulator(File file) {
 		try {
 			cpu = new Cpu();
 			Registers registers = cpu.getRegisters();
@@ -91,7 +97,7 @@ public class Main extends PApplet{
 			controller = cpu.getController();
 			initController();
 		} catch (Chip8Exception e) {
-			logger.severe("", e);
+			logger.log(Level.SEVERE, e.getMessage(), e);
 			System.exit(-1);
 		}
 	}

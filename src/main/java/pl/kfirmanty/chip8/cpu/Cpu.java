@@ -1,16 +1,18 @@
 package pl.kfirmanty.chip8.cpu;
 
+import java.util.logging.Logger;
+
+import pl.kfirmanty.chip8.configuration.Configuration;
 import pl.kfirmanty.chip8.controller.Controller;
 import pl.kfirmanty.chip8.controller.KeyboardController;
 import pl.kfirmanty.chip8.display.Display;
 import pl.kfirmanty.chip8.exception.Chip8Exception;
 import pl.kfirmanty.chip8.helpers.ByteHelper;
-import syntesthesia.Synesthesia;
+import pl.kfirmanty.synesthesia.Synesthesia;
 
-import com.sun.istack.internal.logging.Logger;
 
 public class Cpu {
-	private static Logger logger = Logger.getLogger(Cpu.class);
+	private static Logger logger = Logger.getLogger(Cpu.class.getSimpleName());
 	private Registers registers;
 	private Display display;
 	private Synesthesia synesthesia;
@@ -42,8 +44,12 @@ public class Cpu {
 		short opcode = registers.fetchNextOpcode();
 		decodeOpcode(opcode);
 		registers.updateTimers();
-		synesthesia.changeFrequency(ByteHelper.getNibbles(opcode));
-		synesthesia.playSound();
+		if(Configuration.getInstance().isSynesthesia()){
+			synesthesia.changeFrequency(ByteHelper.getNibbles(opcode));
+			synesthesia.playSound();
+		}else{
+			synesthesia.stopSound();
+		}
 	}
 	
 	//FIXME:Increase readibility

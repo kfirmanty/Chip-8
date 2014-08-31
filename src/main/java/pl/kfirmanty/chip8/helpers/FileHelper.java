@@ -5,13 +5,13 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import pl.kfirmanty.chip8.exception.Chip8Exception;
 
-import com.sun.istack.internal.logging.Logger;
 
 public class FileHelper {
-	private static Logger logger = Logger.getLogger(FileHelper.class);
+	private static Logger logger = Logger.getLogger(FileHelper.class.getSimpleName());
 	
 	public static short[] readProgramMemoryFromFile(String fileName) throws Chip8Exception{
 		short[] memory = null;
