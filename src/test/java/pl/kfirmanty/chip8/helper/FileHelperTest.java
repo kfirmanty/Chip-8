@@ -1,15 +1,18 @@
 package pl.kfirmanty.chip8.helper;
 
 import java.io.File;
-import java.util.Arrays;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
 
-import pl.kfirmanty.chip8.exception.Chip8Exception;
-import pl.kfirmanty.chip8.helpers.FileHelper;
 import junit.framework.Test;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
+import pl.kfirmanty.chip8.cpu.Registers;
+import pl.kfirmanty.chip8.exception.Chip8Exception;
+import pl.kfirmanty.chip8.helpers.FileHelper;
 
 public class FileHelperTest extends TestCase{
+	private static final String TEST_FILE = "memory.bin";
 	
 	public FileHelperTest(String testName) {
 		super(testName);
@@ -20,7 +23,7 @@ public class FileHelperTest extends TestCase{
 	}
 
 
-	public void testApp() {
+	public void testLoadingProgramToArray() {
 		try {
 			short[] memory = FileHelper.readProgramMemoryFromFile("programs" + File.separator + "test.ch8");
 			assertNotNull(memory);
@@ -30,7 +33,21 @@ public class FileHelperTest extends TestCase{
 			}
 			assertTrue(sum > 0);
 		} catch (Chip8Exception e) {
-			assertTrue(false);
+			fail();
+		}
+	}
+	
+	public void testLoadingProgramToRegisters(){
+		try {
+			Registers registers = new Registers();
+			registers.loadProgram(FileHelper.readProgramMemoryFromFile(TEST_FILE), (short)0);
+			byte[] bytes = Files.readAllBytes(FileSystems.getDefault().getPath(TEST_FILE));
+			for(int i = 0; i < bytes.length; i++){
+				assertTrue(bytes[i] == (byte)registers.getMemoryContent(i));
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail();
 		}
 	}
 }
